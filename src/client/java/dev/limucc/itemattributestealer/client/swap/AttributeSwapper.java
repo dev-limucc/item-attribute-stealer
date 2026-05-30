@@ -12,111 +12,102 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 
 /**
- * Core swap logic that implements the "attribute merge" trick.
+ * Core swap logic for the MC-28289 attribute-merge exploit.
  *
- * How MC-28289 works (the vanilla bug we're exploiting):
- * When a player attacks, the server computes damage based on the item the player
- * is CURRENTLY holding.  But if we send a slot-change packet (SetCarriedItem)
- * in the SAME TICK just before and after the attack, the server processes all
- * three packets in one tick — resulting in the attack being processed while the
- * damage modifiers from one weapon and the enchants from another are both active.
+ * Correct packet order (split across two mixin injection points):
  *
- * We drive this purely through vanilla client→server packets so no server-side
- * mod is needed.  Anti-cheat and the AntiSwap plugin will detect and block this.
+ *   [HEAD]   → SetCarriedItem(slotB)   server: "player holds weapon B"
+ *   [vanilla] → attack packet           server: processes hit with weapon B active
+ *   [RETURN] → SetCarriedItem(slotA)   server: "player holds weapon A again"
  *
- * Learning note: This class is called from our Mixin, not registered as a Fabric
- * event.  Either approach works; mixins are more powerful but trickier to debug.
+ * Both slot-change packets and the attack packet all land in the same server
+ * tick, which is what triggers the MC-28289 hybrid-attribute state.
+ *
+ * Previous bug: both slot changes were sent at HEAD (before the attack packet),
+ * so they cancelled each other out and the server just attacked with slot A.
  */
 public class AttributeSwapper {
 
-    /** Feedback message shown on a successful swap. */
     private static final String SUCCESS_MSG = "Magic attribute merge has been used!";
 
     /**
-     * Called from {@link dev.limucc.itemattributestealer.client.mixin.MultiPlayerGameModeMixin}
-     * just BEFORE the vanilla attack packet is sent.
-     *
-     * The sequence:
-     *  1. Send SetCarriedItem(slotB)  → server now thinks we hold weapon B
-     *  2. Let the attack proceed      → server processes hit with weapon B's stats
-     *  3. Send SetCarriedItem(slotA)  → swap back so we appear to hold weapon A again
-     *
-     * The key is that steps 1, 2 (the attack), and 3 all arrive at the server in
-     * the same game tick, so it calculates damage in an unexpected hybrid state.
-     *
-     * @param target the entity being attacked (unused here, available for future checks)
+     * Slot to swap back to after the attack, or -1 if no swap is pending.
+     * Set by onPreAttack, consumed by onPostAttack.
+     * Static is safe — there is only ever one LocalPlayer on the client.
+     */
+    private static int pendingSwapBack = -1;
+
+    /**
+     * Called at HEAD of MultiPlayerGameMode#attack — BEFORE the attack packet.
+     * Validates conditions and sends the first slot-change (A → B).
      */
     public static void onPreAttack(Entity target) {
-        ModConfig cfg = ConfigManager.get();
+        pendingSwapBack = -1;
 
-        // 1. Master toggle
+        ModConfig cfg = ConfigManager.get();
         if (!cfg.enabled) return;
 
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null) return;
 
-        // 2. Slot sanity checks
         int slotA = cfg.weaponSlotA;
         int slotB = cfg.weaponSlotB;
 
-        if (slotA == slotB) {
-            // Both slots are the same — nothing to swap
-            ItemAttributeStealer.LOGGER.warn("Slot A and Slot B are identical ({}), skipping swap.", slotA);
-            return;
-        }
+        if (slotA == slotB) return;
+        if (slotA < 0 || slotA > 8 || slotB < 0 || slotB > 8) return;
 
-        if (slotA < 0 || slotA > 8 || slotB < 0 || slotB > 8) {
-            ItemAttributeStealer.LOGGER.warn("Slot out of hotbar range (A={}, B={}), skipping.", slotA, slotB);
-            return;
-        }
-
-        // 3. Optional: require both slots to be non-empty
         if (cfg.requireBothSlotsFilled) {
             ItemStack stackA = player.getInventory().getItem(slotA);
             ItemStack stackB = player.getInventory().getItem(slotB);
-            if (stackA.isEmpty() || stackB.isEmpty()) {
-                // One of the slots is empty — silently skip
-                return;
-            }
+            if (stackA.isEmpty() || stackB.isEmpty()) return;
         }
 
-        // 4. We should currently be holding slotA; if not, bail to avoid confusion
-        if (player.getInventory().getSelectedSlot() != slotA) {
+        if (player.getInventory().getSelectedSlot() != slotA) return;
+
+        // Switch to weapon B — attack packet will follow immediately after this method returns
+        sendSlotChange(player, slotB);
+
+        // Remember to swap back after the attack
+        pendingSwapBack = slotA;
+
+        ItemAttributeStealer.LOGGER.debug("Pre-attack swap: {} → {}", slotA, slotB);
+    }
+
+    /**
+     * Called at RETURN of MultiPlayerGameMode#attack — AFTER the attack packet.
+     * Sends the second slot-change (B → A) and shows the feedback message.
+     */
+    public static void onPostAttack() {
+        if (pendingSwapBack < 0) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
+        if (player == null) {
+            pendingSwapBack = -1;
             return;
         }
 
-        // ── The actual swap sequence ──────────────────────────────────────────
+        int slotA = pendingSwapBack;
+        pendingSwapBack = -1;
 
-        // Switch to weapon B (server receives this in the same tick as the attack)
-        sendSlotChange(player, slotB);
-
-        // (The attack packet is sent by vanilla code immediately after this method
-        //  returns, in the same tick — that's the timing window MC-28289 depends on.)
-
-        // Switch back to weapon A (also same tick)
+        // Switch back to weapon A
         sendSlotChange(player, slotA);
 
-        // ── Feedback ─────────────────────────────────────────────────────────
+        ItemAttributeStealer.LOGGER.debug("Post-attack swap back to {}", slotA);
+
+        // Show feedback
+        ModConfig cfg = ConfigManager.get();
         if (cfg.showMessage) {
             showFeedback(mc, player, cfg.feedbackStyle);
         }
-
-        ItemAttributeStealer.LOGGER.debug("Attribute swap fired: A={} B={}", slotA, slotB);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    /**
-     * Sends the vanilla slot-change packet to the server AND updates the local
-     * player's selected slot so the client inventory stays in sync.
-     */
     private static void sendSlotChange(LocalPlayer player, int slot) {
         player.getInventory().setSelectedSlot(slot);
         player.connection.send(new ServerboundSetCarriedItemPacket(slot));
     }
 
-    /** Displays the success message according to the chosen feedback style. */
     private static void showFeedback(Minecraft mc, LocalPlayer player, ModConfig.FeedbackStyle style) {
         Component text = Component.literal(SUCCESS_MSG);
         switch (style) {
