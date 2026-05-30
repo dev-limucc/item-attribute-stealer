@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "item_attribute_stealer",
+  "version": "${version}",
+  "name": "Item Attribute Stealer",
+  "description": "Same-tick weapon-swap exploit mod that merges attributes from two hotbar weapons. Educational Fabric modding project.",
+  "authors": [
+    "Limucc-dev"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Limucc-dev/item-attribute-stealer",
+    "sources": "https://github.com/Limucc-dev/item-attribute-stealer"
+  },
+  "license": "MIT",
+  "icon": "assets/item_attribute_stealer/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "dev.limucc.itemattributestealer.ItemAttributeStealer"
+    ],
+    "client": [
+      "dev.limucc.itemattributestealer.client.ItemAttributeStealerClient"
+    ],
+    "modmenu": [
+      "dev.limucc.itemattributestealer.client.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "item_attribute_stealer.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "~26.1",
+    "java": ">=25",
+    "fabric-api": "*",
+    "cloth-config": "*",
+    "modmenu": "*"
+  }
+}
