@@ -82,7 +82,7 @@ public class AttributeSwapper {
         }
 
         // 4. We should currently be holding slotA; if not, bail to avoid confusion
-        if (player.getInventory().selected != slotA) {
+        if (player.getInventory().getSelectedSlot() != slotA) {
             return;
         }
 
@@ -112,7 +112,7 @@ public class AttributeSwapper {
      * player's selected slot so the client inventory stays in sync.
      */
     private static void sendSlotChange(LocalPlayer player, int slot) {
-        player.getInventory().selected = slot;
+        player.getInventory().setSelectedSlot(slot);
         player.connection.send(new ServerboundSetCarriedItemPacket(slot));
     }
 
@@ -120,11 +120,11 @@ public class AttributeSwapper {
     private static void showFeedback(Minecraft mc, LocalPlayer player, ModConfig.FeedbackStyle style) {
         Component text = Component.literal(SUCCESS_MSG);
         switch (style) {
-            case ACTION_BAR -> player.displayClientMessage(text, true);
-            case CHAT       -> player.displayClientMessage(text, false);
-            case TOAST      -> mc.getToastManager().addToast(
-                    SystemToast.multiline(mc, SystemToast.SystemToastId.TUTORIAL_HINT,
-                            Component.literal("Item Attribute Stealer"), text));
+            case ACTION_BAR -> player.sendOverlayMessage(text);
+            case CHAT       -> player.sendSystemMessage(text);
+            case TOAST      -> SystemToast.add(mc.getToastManager(),
+                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                    Component.literal("Item Attribute Stealer"), text);
         }
     }
 }
