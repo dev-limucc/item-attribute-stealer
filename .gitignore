@@ -1,3 +1,7 @@
+# Private / local-only files (never push these)
+CLAUDE.md
+README.private.md
+
 # Gradle build output
 .gradle/
 build/

@@ -1,149 +1,66 @@
 # Item Attribute Stealer
 
-A **learning-first** Fabric client mod for **Minecraft 26.1.2** that replicates the
-well-known vanilla exploit [MC-28289](https://mojira.dev/MC-28289) ("attribute swapping" /
-"sword swapping").
+A Fabric client mod for **Minecraft 26.1.2** that replicates the vanilla
+attribute-swap exploit ([MC-28289](https://mojira.dev/MC-28289)).
 
-When enabled, hitting any entity automatically swaps your held hotbar slot to a second
-weapon and back **within the same game tick**, causing the server to evaluate the attack
-with the merged attributes (damage, attack speed) and enchantments of both weapons.
+When enabled, hitting an entity automatically performs a same-tick weapon swap
+between two hotbar slots, merging the attributes and enchantments of both weapons
+for that attack. On success the message **"Magic attribute merge has been used!"**
+appears on screen.
 
-On a successful swap the client shows: **"Magic attribute merge has been used!"**
+All settings are configurable in-game through **ModMenu**.
 
 ---
 
 ## ⚠️ Responsible Use
 
-This mod exploits a vanilla Minecraft bug.
-
-- ✅ Singleplayer and your own private servers — go wild.
-- ✅ Lab / learning environment — that's exactly what this is for.
-- ❌ Public competitive servers — almost certainly against their rules.
-- ❌ Anti-cheat servers (running AntiSwap or modern anti-cheat) — will be detected and blocked. That's expected behaviour.
-
-**Please do not use this to grief other players.**
+- ✅ Singleplayer and servers you own
+- ❌ Public competitive servers — likely against their rules
+- ❌ Servers with anti-cheat — will be detected and blocked (expected)
 
 ---
 
-## How It Works
+## Requirements
 
-Minecraft processes incoming network packets sequentially within each server tick.
-When the client sends:
-
-```
-[tick N start]
-  → ServerboundSetCarriedItemPacket(slot B)   ← swap to weapon B
-  → ServerboundPlayerActionPacket (attack)    ← hit entity
-  → ServerboundSetCarriedItemPacket(slot A)   ← swap back to weapon A
-[tick N end]
-```
-
-…all three packets are processed in a single tick. The server's damage calculation
-reads the attribute state in an intermediate ordering, resulting in attributes from
-one weapon and enchantments from another being active simultaneously — the "merge".
-
-This mod sends those extra slot-change packets automatically around every left-click
-attack when enabled.
-
----
-
-## Features
-
-- **Master toggle** — enable/disable the mod without restarting
-- **Slot picker** — configure which two hotbar slots are your Weapon A and Weapon B
-- **Safety check** — optionally require both slots to be non-empty before firing
-- **Feedback** — "Magic attribute merge has been used!" shown as Action Bar, Chat, or Toast
-- **Cloth Config + ModMenu** — all settings accessible in-game via the Mods screen
+| | Version |
+|---|---|
+| Minecraft | 26.1.2 |
+| Fabric Loader | 0.19.2+ |
+| Fabric API | 0.150.0+26.1.2 |
+| [Cloth Config](https://modrinth.com/mod/cloth-config) | 26.1.x |
+| [ModMenu](https://github.com/TerraformersMC/ModMenu) | 18.x |
+| Java | 25 |
 
 ---
 
 ## Installation
 
-### Prerequisites
+Drop the mod JAR into your `.minecraft/mods/` folder alongside Fabric API,
+Cloth Config, and ModMenu.
 
-| Tool | Version |
-|---|---|
-| Java | **25** |
-| Minecraft | **26.1.2** |
-| Fabric Loader | **0.19.2+** |
-| Fabric API | **0.150.0+26.1.2** |
-
-Also install:
-- [Cloth Config API](https://modrinth.com/mod/cloth-config) for 26.1.2
-- [ModMenu](https://github.com/TerraformersMC/ModMenu) for 26.1
-
-### From source
+### Build from source
 
 ```bash
-# Clone the repo
-git clone https://github.com/Limucc-dev/item-attribute-stealer.git
+git clone https://github.com/dev-limucc/item-attribute-stealer.git
 cd item-attribute-stealer
-
-# Build (downloads MC 26.1.2 dev environment on first run — may take a few minutes)
-./gradlew build
-
-# The built mod JAR lands in build/libs/
+.\gradlew.bat build
 ```
 
-To run the mod in a dev client:
-```bash
-./gradlew runClient
-```
+The JAR lands in `build/libs/`.
 
 ---
 
-## Project Structure (learning guide)
+## Configuration
 
-```
-src/
-  main/                               ← Common code (server + client)
-    java/dev/limucc/itemattributestealer/
-      ItemAttributeStealer.java       ← Mod ID, shared logger
-    resources/
-      fabric.mod.json                 ← Mod metadata, entrypoints, deps
+Open **ModMenu → Item Attribute Stealer → Config**:
 
-  client/                             ← Client-only code
-    java/dev/limucc/itemattributestealer/client/
-      ItemAttributeStealerClient.java ← Client entrypoint (loads config)
-      ModMenuIntegration.java         ← Cloth Config screen via ModMenu
-      config/
-        ModConfig.java                ← Config fields (POJO)
-        ConfigManager.java            ← Load / save JSON to disk
-      swap/
-        AttributeSwapper.java         ← The swap logic + feedback
-      mixin/
-        MultiPlayerGameModeMixin.java ← @Inject into vanilla attack method
-    resources/
-      item_attribute_stealer.client.mixins.json
-```
-
-### Key concepts this project teaches
-
-| Concept | Where to look |
-|---|---|
-| Mod entrypoints | `fabric.mod.json` + `ItemAttributeStealer`, `ItemAttributeStealerClient` |
-| Fabric Loom / Gradle setup | `build.gradle`, `gradle.properties` |
-| Mojang mappings (26.1+ style) | `build.gradle` — note: no `mappings` line |
-| Mixins | `MultiPlayerGameModeMixin.java` |
-| Cloth Config UI | `ModMenuIntegration.java` |
-| Config persistence | `ConfigManager.java` (Gson + FabricLoader paths) |
-| Networking (vanilla packets) | `AttributeSwapper.java` — `ServerboundSetCarriedItemPacket` |
-
----
-
-## Contributing
-
-PRs welcome! Ideas for future learning additions:
-- [ ] Configurable cooldown between swaps
-- [ ] Key-bind toggle (no need to open ModMenu)
-- [ ] HUD overlay showing current swap state
-- [ ] Server-side detection avoidance metrics (for research)
+- **General** — enable / disable the mod
+- **Slots** — choose which two hotbar slots are your Weapon A and Weapon B
+- **Feedback** — toggle the success message and pick Action Bar / Chat / Toast
 
 ---
 
 ## Credits
 
 Built by **[Limucc-dev](https://github.com/dev-limucc)**.  
-Powered by [Fabric](https://fabricmc.net/), [Cloth Config](https://github.com/shedaniel/cloth-config),
-and [ModMenu](https://github.com/TerraformersMC/ModMenu).  
 Exploit documented at [MC-28289](https://mojira.dev/MC-28289).
