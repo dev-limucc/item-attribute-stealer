@@ -1,49 +1,68 @@
 package dev.limucc.itemattributestealer.client.config;
 
 /**
- * Plain-old-Java-object that holds all mod settings.
- * This is serialised to / deserialised from JSON by ConfigManager.
- *
- * Learning note: keeping config as a POJO makes it easy to save with any
- * JSON library and to integrate with Cloth Config's builder API.
+ * All mod settings. Serialised to JSON by ConfigManager.
+ * New fields automatically get their defaults on first load (Gson skips missing fields).
  */
 public class ModConfig {
 
-    // ── General ──────────────────────────────────────────────────────────────
-
-    /** Master switch: when false the mod does nothing at all. */
+    // ── Master toggle (also flipped by the keybind) ───────────────────────────
     public boolean enabled = false;
 
-    // ── Slot selection ───────────────────────────────────────────────────────
+    // ── Mode ──────────────────────────────────────────────────────────────────
+    /** Which swap strategy to use. */
+    public Mode mode = Mode.SLOT;
 
-    /** Hotbar slot (0–8) treated as "Weapon A" — the weapon you normally hold. */
-    public int weaponSlotA = 0;
+    public enum Mode { WEAPON, SLOT }
 
-    /** Hotbar slot (0–8) treated as "Weapon B" — the weapon swapped to-and-from. */
-    public int weaponSlotB = 1;
+    // ── Weapon Mode ───────────────────────────────────────────────────────────
+
+    /** The item type you hold when you want the swap to fire. */
+    public HeldKind heldKind = HeldKind.ANY;
+
+    /** The item type whose attributes are merged into your attack. Must be in your hotbar. */
+    public CopyKind copyKind = CopyKind.SWORD;
 
     /**
-     * When true, the swap only fires if both slots actually contain items
-     * (basic weapon check: not empty).  Prevents accidental swaps.
+     * When true: if your hand is empty, still do the swap (to any tool in your hotbar).
+     * Lets you "use" a tool's damage without spending its durability.
      */
-    public boolean requireBothSlotsFilled = true;
+    public boolean emptyHandUsage = false;
 
-    // ── Feedback ─────────────────────────────────────────────────────────────
+    /**
+     * When true: breaking a crop auto-swaps to the highest-Fortune tool in your hotbar
+     * for the instant break, then swaps back. Crops are one-tick breaks, so no durability
+     * is spent on the Fortune tool.
+     */
+    public boolean useFortuneForCrops = false;
 
-    /** Whether to show any visual feedback on a successful swap. */
-    public boolean showMessage = true;
+    /**
+     * EXPERIMENTAL. When true: adds a client-side reach buff so you can target entities
+     * at spear range. The server validates reach independently — far hits may whiff on
+     * strict servers. Requires a spear somewhere in your hotbar.
+     */
+    public boolean spearReach = false;
 
-    /** How to show the "Magic attribute merge has been used!" message. */
-    public FeedbackStyle feedbackStyle = FeedbackStyle.ACTION_BAR;
+    // ── Slot Mode ─────────────────────────────────────────────────────────────
+    /** Hotbar slot shown to user as 1–9 (stored as 1–9, converted to 0–8 internally). */
+    public int slotA = 1;
+    public int slotB = 2;
 
-    // ── Inner types ──────────────────────────────────────────────────────────
+    // ── Enums ─────────────────────────────────────────────────────────────────
 
-    public enum FeedbackStyle {
-        /** Appears above the hotbar — unobtrusive. */
-        ACTION_BAR,
-        /** Appears in the chat window. */
-        CHAT,
-        /** Small toast notification in the top-right corner. */
-        TOAST
+    /**
+     * Item type the player is HOLDING to trigger the swap.
+     * ANY = any tool (not a placeable block).
+     */
+    public enum HeldKind {
+        ANY, SWORD, AXE, MACE, TRIDENT, SPEAR, PICKAXE, SHOVEL, HOE
+    }
+
+    /**
+     * Item type whose attributes are COPIED. No ANY option — must be a specific type
+     * that can be found in the hotbar.
+     */
+    public enum CopyKind {
+        SWORD, AXE, MACE, TRIDENT, SPEAR, PICKAXE, SHOVEL, HOE
     }
 }
