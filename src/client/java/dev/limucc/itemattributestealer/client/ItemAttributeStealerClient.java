@@ -3,6 +3,8 @@ package dev.limucc.itemattributestealer.client;
 import dev.limucc.itemattributestealer.ItemAttributeStealer;
 import dev.limucc.itemattributestealer.client.config.ConfigManager;
 import dev.limucc.itemattributestealer.client.config.ModConfig;
+import dev.limucc.itemattributestealer.client.swap.AttributeSwapper;
+import dev.limucc.itemattributestealer.client.swap.CropFortuneHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -26,6 +28,7 @@ public class ItemAttributeStealerClient implements ClientModInitializer {
                 ));
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            // Keybind toggle
             while (TOGGLE_KEY.consumeClick()) {
                 ModConfig cfg = ConfigManager.get();
                 cfg.enabled = !cfg.enabled;
@@ -36,6 +39,10 @@ public class ItemAttributeStealerClient implements ClientModInitializer {
                             Component.literal("Item Attribute Stealer: " + state));
                 }
             }
+
+            // Tick-delayed swap-back (for both attack and crop fortune)
+            AttributeSwapper.onTick();
+            CropFortuneHandler.onTick();
         });
 
         ItemAttributeStealer.LOGGER.info("Item Attribute Stealer client ready. Toggle: H");

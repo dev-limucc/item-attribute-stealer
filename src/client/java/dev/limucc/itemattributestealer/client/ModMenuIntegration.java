@@ -139,6 +139,24 @@ public class ModMenuIntegration implements ModMenuApi {
                 Requirement.isTrue(() -> modeEntry.getValue() == ModConfig.Mode.SLOT));
         settings.addEntry(slotBEntry);
 
+        // ══ TICK CONTROL — always visible ════════════════════════════════════
+
+        settings.addEntry(e.startTextDescription(
+                Component.literal("§8─────────── Tick Control ─────────────")).build());
+
+        settings.addEntry(e
+                .startIntField(Component.literal("Swap Back Delay (ticks)"), cfg.swapBackDelayTicks)
+                .setDefaultValue(1)
+                .setMin(0).setMax(5)
+                .setTooltip(Component.literal(
+                        "How many ticks to hold the copy weapon after swapping, before returning.\n" +
+                        "0 = swap back in the same tick as the attack.\n" +
+                        "1 = hold for 1 full tick then return (recommended — gives the server\n" +
+                        "    time to register the copy weapon's enchantments).\n" +
+                        "2–5 = longer hold, useful if 1 tick is still not enough."))
+                .setSaveConsumer(v -> cfg.swapBackDelayTicks = Math.max(0, Math.min(5, v)))
+                .build());
+
         // ══ EXTRA FEATURES — always visible ══════════════════════════════════
 
         settings.addEntry(e.startTextDescription(

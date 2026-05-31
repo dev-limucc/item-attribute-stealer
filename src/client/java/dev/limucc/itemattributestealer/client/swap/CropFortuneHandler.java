@@ -25,6 +25,20 @@ import net.minecraft.world.level.block.state.BlockState;
 public class CropFortuneHandler {
 
     private static int pendingSwapBack = -1;
+    private static int swapBackCountdown = 0;
+
+    /** Called every tick by the tick handler to handle delayed swap-back. */
+    public static void onTick() {
+        if (pendingSwapBack < 0 || swapBackCountdown <= 0) return;
+        swapBackCountdown--;
+        if (swapBackCountdown <= 0) {
+            Minecraft mc = Minecraft.getInstance();
+            LocalPlayer player = mc.player;
+            int back = pendingSwapBack;
+            pendingSwapBack = -1;
+            if (player != null) AttributeSwapper.sendSlotChange(player, back);
+        }
+    }
 
     public static void onPreBreak(BlockPos pos) {
         pendingSwapBack = -1;
@@ -50,20 +64,24 @@ public class CropFortuneHandler {
         if (fortuneSlot < 0 || fortuneSlot == heldSlot) return;
 
         AttributeSwapper.sendSlotChange(player, fortuneSlot);
-        pendingSwapBack = heldSlot;
+        pendingSwapBack   = heldSlot;
+        swapBackCountdown = Math.max(0, ConfigManager.get().swapBackDelayTicks);
         ItemAttributeStealer.LOGGER.debug("Fortune crop swap: slot {} → {}", heldSlot, fortuneSlot);
     }
 
     public static void onPostBreak() {
         if (pendingSwapBack < 0) return;
-
-        Minecraft mc = Minecraft.getInstance();
-        LocalPlayer player = mc.player;
-        if (player == null) { pendingSwapBack = -1; return; }
-
-        int back = pendingSwapBack;
-        pendingSwapBack = -1;
-        AttributeSwapper.sendSlotChange(player, back);
-        ItemAttributeStealer.LOGGER.debug("Fortune crop swap back to slot {}", back);
+        // Swap back immediately if no tick delay configured
+        if (swapBackCountdown <= 0) {
+            Minecraft mc = Minecraft.getInstance();
+            LocalPlayer player = mc.player;
+            int back = pendingSwapBack;
+            pendingSwapBack = -1;
+            if (player != null) {
+                AttributeSwapper.sendSlotChange(player, back);
+                ItemAttributeStealer.LOGGER.debug("Fortune crop swap back to slot {}", back);
+            }
+        }
+        // Otherwise tick handler counts down
     }
 }

@@ -36,6 +36,14 @@ public class ModConfig {
      */
     public boolean useFortuneForCrops = false;
 
+    /**
+     * How many ticks to hold the copy weapon after swapping before returning.
+     * 0 = swap back in the same tick as the attack (current behaviour).
+     * 1 = hold copy weapon for 1 full tick then swap back.
+     * Increase this if the server seems to not register the copy weapon's enchantments.
+     */
+    public int swapBackDelayTicks = 1;
+
     // ── Slot Mode ─────────────────────────────────────────────────────────────
     /** Hotbar slot shown to user as 1–9 (stored as 1–9, converted to 0–8 internally). */
     public int slotA = 1;
