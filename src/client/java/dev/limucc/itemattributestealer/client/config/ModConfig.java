@@ -36,13 +36,6 @@ public class ModConfig {
      */
     public boolean useFortuneForCrops = false;
 
-    /**
-     * EXPERIMENTAL. When true: adds a client-side reach buff so you can target entities
-     * at spear range. The server validates reach independently — far hits may whiff on
-     * strict servers. Requires a spear somewhere in your hotbar.
-     */
-    public boolean spearReach = false;
-
     // ── Slot Mode ─────────────────────────────────────────────────────────────
     /** Hotbar slot shown to user as 1–9 (stored as 1–9, converted to 0–8 internally). */
     public int slotA = 1;
@@ -55,7 +48,7 @@ public class ModConfig {
      * ANY = any tool (not a placeable block).
      */
     public enum HeldKind {
-        ANY, SWORD, AXE, MACE, TRIDENT, SPEAR, PICKAXE, SHOVEL, HOE
+        ANY, SWORD, AXE, MACE, TRIDENT, PICKAXE, SHOVEL, HOE
     }
 
     /**
@@ -63,6 +56,6 @@ public class ModConfig {
      * that can be found in the hotbar.
      */
     public enum CopyKind {
-        SWORD, AXE, MACE, TRIDENT, SPEAR, PICKAXE, SHOVEL, HOE
+        SWORD, AXE, MACE, TRIDENT, PICKAXE, SHOVEL, HOE
     }
 }

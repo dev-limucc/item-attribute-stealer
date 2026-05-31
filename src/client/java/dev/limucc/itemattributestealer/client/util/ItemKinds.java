@@ -17,9 +17,8 @@ import net.minecraft.world.level.Level;
  * Static helpers for detecting weapon/tool types and enchantments in 26.1.2.
  *
  * Key 26.1 facts:
- *  - There is NO SwordItem, SpearItem, or PickaxeItem class.
+ *  - There is NO SwordItem or PickaxeItem class.
  *  - Weapon detection uses the ATTRIBUTE_MODIFIERS or WEAPON data component.
- *  - Spear detection uses the KINETIC_WEAPON data component (unique to spears).
  *  - Tool detection uses DataComponents.TOOL (excludes BlockItems).
  *  - Sword/Pickaxe are detected by item-id path suffix ("_sword", "_pickaxe").
  */
@@ -53,7 +52,6 @@ public final class ItemKinds {
             case AXE     -> s.getItem() instanceof AxeItem;
             case MACE    -> s.getItem() instanceof MaceItem;
             case TRIDENT -> s.getItem() instanceof TridentItem;
-            case SPEAR   -> s.has(DataComponents.KINETIC_WEAPON);
             case PICKAXE -> idPathEndsWith(s, "_pickaxe");
             case SHOVEL  -> s.getItem() instanceof ShovelItem;
             case HOE     -> s.getItem() instanceof HoeItem;
@@ -69,7 +67,6 @@ public final class ItemKinds {
             case AXE     -> s.getItem() instanceof AxeItem;
             case MACE    -> s.getItem() instanceof MaceItem;
             case TRIDENT -> s.getItem() instanceof TridentItem;
-            case SPEAR   -> s.has(DataComponents.KINETIC_WEAPON);
             case PICKAXE -> idPathEndsWith(s, "_pickaxe");
             case SHOVEL  -> s.getItem() instanceof ShovelItem;
             case HOE     -> s.getItem() instanceof HoeItem;

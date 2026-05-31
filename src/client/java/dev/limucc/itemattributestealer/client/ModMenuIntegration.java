@@ -165,21 +165,6 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setSaveConsumer(v -> cfg.useFortuneForCrops = v)
                 .build());
 
-        // Spear Reach — only shown when Mode = WEAPON and Take Attrib From = SPEAR
-        var spearEntry = e
-                .startBooleanToggle(Component.literal("Spear Reach  [experimental]"), cfg.spearReach)
-                .setDefaultValue(false)
-                .setTooltip(Component.literal(
-                        "Extends your targeting range to spear reach while a spear is in your hotbar.\n" +
-                        "Only available when Take Attrib From = SPEAR.\n" +
-                        "⚠ Server validates reach — far hits may whiff on strict servers."))
-                .setSaveConsumer(v -> cfg.spearReach = v)
-                .build();
-        spearEntry.setDisplayRequirement(Requirement.isTrue(() ->
-                modeEntry.getValue() == ModConfig.Mode.WEAPON
-                && copyEntry.getValue() == ModConfig.CopyKind.SPEAR));
-        settings.addEntry(spearEntry);
-
         return builder.build();
     }
 }
