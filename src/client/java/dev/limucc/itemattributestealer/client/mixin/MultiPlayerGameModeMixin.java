@@ -4,6 +4,7 @@ import dev.limucc.itemattributestealer.client.swap.AttributeSwapper;
 import dev.limucc.itemattributestealer.client.swap.CropFortuneHandler;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,16 +14,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Four injection points into MultiPlayerGameMode:
+ * Attack: HEAD/RETURN around attack(Player, Entity).
  *
- *   attack(Player, Entity)  HEAD   → swap to copy-weapon BEFORE attack packet
- *   attack(Player, Entity)  RETURN → swap back AFTER attack packet
- *
- *   destroyBlock(BlockPos)  HEAD   → swap to Fortune tool BEFORE block-break packet
- *   destroyBlock(BlockPos)  RETURN → swap back AFTER block-break packet
- *
- * destroyBlock is the single chokepoint for all break paths (instant, creative,
- * survival finish) so one pair of injects covers all crop-break scenarios.
+ * Fortune crops: HEAD/RETURN around startDestroyBlock(BlockPos, Direction).
+ *   WHY startDestroyBlock and NOT destroyBlock:
+ *   For instant-break blocks (crops), the server receives START_DESTROY_BLOCK inside
+ *   startDestroyBlock — BEFORE destroyBlock is called as a client-side prediction.
+ *   If we swap slots at destroyBlock HEAD, the server has already computed drops
+ *   without Fortune. We must swap BEFORE the packet leaves the client, which means
+ *   injecting at startDestroyBlock HEAD.
  */
 @Mixin(MultiPlayerGameMode.class)
 public class MultiPlayerGameModeMixin {
@@ -39,15 +39,19 @@ public class MultiPlayerGameModeMixin {
         AttributeSwapper.onPostAttack();
     }
 
-    // ── Block-break hooks (for Fortune crops) ─────────────────────────────────
+    // ── Fortune crops hooks ───────────────────────────────────────────────────
+    // Hook startDestroyBlock so our slot swap reaches the server BEFORE the
+    // START_DESTROY_BLOCK packet, giving Fortune to the server's drop calculation.
 
-    @Inject(method = "destroyBlock", at = @At("HEAD"))
-    private void onDestroyBlockHead(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "startDestroyBlock", at = @At("HEAD"))
+    private void onStartDestroyBlockHead(BlockPos pos, Direction direction,
+                                         CallbackInfoReturnable<Boolean> cir) {
         CropFortuneHandler.onPreBreak(pos);
     }
 
-    @Inject(method = "destroyBlock", at = @At("RETURN"))
-    private void onDestroyBlockReturn(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "startDestroyBlock", at = @At("RETURN"))
+    private void onStartDestroyBlockReturn(BlockPos pos, Direction direction,
+                                           CallbackInfoReturnable<Boolean> cir) {
         CropFortuneHandler.onPostBreak();
     }
 }
