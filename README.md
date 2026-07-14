@@ -1,5 +1,7 @@
 # Item Attribute Stealer
 
+[![build](https://github.com/dev-limucc/item-attribute-stealer/actions/workflows/build.yml/badge.svg)](https://github.com/dev-limucc/item-attribute-stealer/actions/workflows/build.yml)
+
 A Fabric client mod for **Minecraft 26.1.2** that replicates the vanilla
 attribute-swap exploit ([MC-28289](https://mojira.dev/MC-28289)).
 
